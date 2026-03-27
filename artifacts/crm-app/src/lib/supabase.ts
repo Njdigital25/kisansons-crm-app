@@ -23,3 +23,11 @@ export type Lead = {
   follow_up_date?: string;
   created_at?: string;
 };
+
+export type Customer = {
+  id: string;
+  name?: string;
+  phone?: string;
+  village?: string;
+  created_at?: string;
+};

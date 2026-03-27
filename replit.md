@@ -91,6 +91,25 @@ Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used b
 
 Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
 
+### `artifacts/crm-app` (`@workspace/crm-app`)
+
+React + Vite CRM web app backed by Supabase.
+
+- **Auth**: Supabase email/password auth. Users created in Supabase Dashboard → Authentication → Users.
+- **Routing**: State-based (`currentPage` in `App.tsx`) — no external router.
+- **Layout**: Fixed left sidebar (`src/components/Layout.tsx`) with Dashboard, Leads, Customers nav + sign out.
+- **Pages**:
+  - `DashboardPage` — stat cards (total leads, customers, conversion rate, follow-ups today), lead pipeline breakdown bars, recent leads & upcoming follow-up tables.
+  - `LeadsPage` — full CRUD with search, status dropdown (triggers lead→customer conversion when set to "Qualified"), and edit modal.
+  - `CustomersPage` — full CRUD with search and edit modal.
+- **Lead → Customer conversion**: Triggered when lead status changes to "Qualified". Checks name/phone/village. If all present, auto-creates customer. If any missing, shows `MissingDataModal` to collect the missing fields first.
+- **Tables** (Supabase):
+  - `leads`: id, name, phone, village, district, source, status (default 'New'), assigned_to, follow_up_date, created_at
+  - `customers`: id, name, phone, village, created_at
+- **RLS**: Both tables require INSERT + SELECT policies for `authenticated` role (or disable RLS).
+- **Env vars**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (Replit secrets).
+- **Key files**: `src/App.tsx`, `src/components/Layout.tsx`, `src/components/Modal.tsx`, `src/pages/DashboardPage.tsx`, `src/pages/LeadsPage.tsx`, `src/pages/CustomersPage.tsx`, `src/lib/supabase.ts`, `src/lib/customerService.ts`, `src/components/MissingDataModal.tsx`.
+
 ### `scripts` (`@workspace/scripts`)
 
 Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.

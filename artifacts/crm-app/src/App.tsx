@@ -1,12 +1,18 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import LoginPage from "@/pages/LoginPage";
-import LeadsPage from "@/pages/LeadsPage";
 import type { Session } from "@supabase/supabase-js";
+import LoginPage from "@/pages/LoginPage";
+import DashboardPage from "@/pages/DashboardPage";
+import LeadsPage from "@/pages/LeadsPage";
+import CustomersPage from "@/pages/CustomersPage";
+import Layout from "@/components/Layout";
+
+type Page = "dashboard" | "leads" | "customers";
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState<Page>("dashboard");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -29,5 +35,19 @@ export default function App() {
     );
   }
 
-  return session ? <LeadsPage /> : <LoginPage />;
+  if (!session) return <LoginPage />;
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case "dashboard": return <DashboardPage />;
+      case "leads": return <LeadsPage />;
+      case "customers": return <CustomersPage />;
+    }
+  };
+
+  return (
+    <Layout currentPage={currentPage} onNavigate={setCurrentPage}>
+      {renderPage()}
+    </Layout>
+  );
 }

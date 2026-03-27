@@ -56,7 +56,7 @@ export default function DashboardPage() {
         totalLeads: total,
         totalCustomers: c.length,
         qualifiedLeads: qualified,
-        conversionRate: total > 0 ? Math.round((qualified / total) * 100) : 0,
+        conversionRate: total > 0 ? Math.round((c.length / total) * 100) : 0,
         newLeads: l.filter((x: Lead) => x.status === "New").length,
         contactedLeads: l.filter((x: Lead) => x.status === "Contacted").length,
         lostLeads: l.filter((x: Lead) => x.status === "Lost").length,
@@ -126,7 +126,7 @@ export default function DashboardPage() {
         <StatCard
           label="Conversion Rate"
           value={`${s.conversionRate}%`}
-          sub="Leads → Qualified"
+          sub="Leads → Customers"
           color="bg-purple-50"
           icon={<svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>}
         />

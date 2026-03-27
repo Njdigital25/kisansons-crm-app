@@ -56,20 +56,38 @@ export default function LeadsPage({ onSuccess }: Props) {
     setTimeout(() => setSuccessMessage(null), 4000);
   };
 
+  // Optimistically update a lead's status in local state
+  const optimisticStatusUpdate = (leadId: string, newStatus: string) => {
+    setLeads((prev) => prev.map((l) => l.id === leadId ? { ...l, status: newStatus } : l));
+  };
+
   // Status change with Qualified conversion logic
   const handleStatusChange = async (lead: Lead, newStatus: string) => {
     if (newStatus === lead.status) return;
+
+    // Optimistically update UI immediately so dropdown doesn't snap back
+    optimisticStatusUpdate(lead.id, newStatus);
 
     if (newStatus === "Qualified") {
       const check = checkFields(lead);
       if (check.ready) {
         const result = await createCustomer({ name: lead.name!, phone: lead.phone!, village: lead.village! });
-        if (result.error) { setError(result.error); return; }
+        if (result.error) {
+          optimisticStatusUpdate(lead.id, lead.status ?? "New"); // revert
+          setError(result.error);
+          return;
+        }
         const { error: statusErr } = await updateLeadStatus(lead.id, "Qualified");
-        if (statusErr) { setError(statusErr); return; }
+        if (statusErr) {
+          optimisticStatusUpdate(lead.id, lead.status ?? "New"); // revert
+          setError(statusErr);
+          return;
+        }
         await fetchLeads();
         showSuccess(result.reason ? `Lead qualified. Note: ${result.reason}` : "Customer created successfully!");
       } else {
+        // revert optimistic update — show modal instead
+        optimisticStatusUpdate(lead.id, lead.status ?? "New");
         setPendingLead(lead);
         setMissingFields(check.missing);
       }
@@ -77,7 +95,12 @@ export default function LeadsPage({ onSuccess }: Props) {
     }
 
     const { error: statusErr } = await updateLeadStatus(lead.id, newStatus);
-    if (statusErr) { setError(statusErr); return; }
+    if (statusErr) {
+      optimisticStatusUpdate(lead.id, lead.status ?? "New"); // revert on failure
+      setError(statusErr);
+      return;
+    }
+    // Sync with server after successful save
     await fetchLeads();
   };
 

@@ -1,12 +1,25 @@
 import { useEffect, useState } from "react";
 import { supabase, type Lead } from "@/lib/supabase";
 import AddLeadForm from "@/components/AddLeadForm";
+import MissingDataModal from "@/components/MissingDataModal";
+import {
+  checkFields,
+  createCustomer,
+  updateLeadStatus,
+} from "@/lib/customerService";
+
+const STATUS_OPTIONS = ["New", "Contacted", "Qualified", "Lost"];
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // For missing-data modal
+  const [pendingLead, setPendingLead] = useState<Lead | null>(null);
+  const [missingFields, setMissingFields] = useState<string[]>([]);
 
   const fetchLeads = async () => {
     setLoading(true);
@@ -26,17 +39,75 @@ export default function LeadsPage() {
     fetchLeads();
   }, []);
 
+  const showSuccess = (msg: string) => {
+    setSuccessMessage(msg);
+    setTimeout(() => setSuccessMessage(null), 4000);
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
   };
 
+  // Called when user selects a status from the dropdown
+  const handleStatusChange = async (lead: Lead, newStatus: string) => {
+    if (newStatus === lead.status) return;
+
+    // Special logic for "Qualified"
+    if (newStatus === "Qualified") {
+      const check = checkFields(lead);
+
+      if (check.ready) {
+        // All fields present — create customer directly
+        const result = await createCustomer({
+          name: lead.name!,
+          phone: lead.phone!,
+          village: lead.village!,
+        });
+
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
+
+        // Update lead status
+        const { error: statusErr } = await updateLeadStatus(lead.id, "Qualified");
+        if (statusErr) { setError(statusErr); return; }
+
+        await fetchLeads();
+
+        if (result.reason) {
+          showSuccess(`Lead marked as Qualified. Note: ${result.reason}`);
+        } else {
+          showSuccess("Customer created successfully!");
+        }
+      } else {
+        // Some fields missing — show modal
+        setPendingLead(lead);
+        setMissingFields(check.missing);
+      }
+      return;
+    }
+
+    // For any other status change — update directly
+    const { error: statusErr } = await updateLeadStatus(lead.id, newStatus);
+    if (statusErr) { setError(statusErr); return; }
+    await fetchLeads();
+  };
+
+  const handleModalSuccess = async (message: string) => {
+    setPendingLead(null);
+    setMissingFields([]);
+    await fetchLeads();
+    showSuccess(message);
+  };
+
   const statusColor = (status?: string) => {
     switch (status?.toLowerCase()) {
-      case "new": return "bg-blue-50 text-blue-700";
-      case "contacted": return "bg-yellow-50 text-yellow-700";
-      case "qualified": return "bg-green-50 text-green-700";
-      case "lost": return "bg-red-50 text-red-700";
-      default: return "bg-gray-50 text-gray-600";
+      case "new": return "bg-blue-50 text-blue-700 border-blue-100";
+      case "contacted": return "bg-yellow-50 text-yellow-700 border-yellow-100";
+      case "qualified": return "bg-green-50 text-green-700 border-green-100";
+      case "lost": return "bg-red-50 text-red-700 border-red-100";
+      default: return "bg-gray-50 text-gray-600 border-gray-100";
     }
   };
 
@@ -61,6 +132,17 @@ export default function LeadsPage() {
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8">
+
+        {/* Success toast */}
+        {successMessage && (
+          <div className="fixed top-5 right-5 z-50 flex items-center gap-3 bg-green-600 text-white px-5 py-3 rounded-xl shadow-lg text-sm font-medium animate-in fade-in slide-in-from-top-2">
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            {successMessage}
+          </div>
+        )}
+
         {/* Page title + Add button */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -94,20 +176,28 @@ export default function LeadsPage() {
                 </button>
               </div>
               <AddLeadForm
-                onSuccess={() => {
-                  setShowForm(false);
-                  fetchLeads();
-                }}
+                onSuccess={() => { setShowForm(false); fetchLeads(); }}
                 onCancel={() => setShowForm(false)}
               />
             </div>
           </div>
         )}
 
+        {/* Missing Data Modal */}
+        {pendingLead && (
+          <MissingDataModal
+            lead={pendingLead}
+            missingFields={missingFields}
+            onSuccess={handleModalSuccess}
+            onCancel={() => { setPendingLead(null); setMissingFields([]); }}
+          />
+        )}
+
         {/* Error */}
         {error && (
-          <div className="mb-4 rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
-            {error}
+          <div className="mb-4 rounded-lg bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600 flex items-center justify-between">
+            <span>{error}</span>
+            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600 ml-4">✕</button>
           </div>
         )}
 
@@ -123,7 +213,7 @@ export default function LeadsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 text-left">
+                  <tr className="border-b border-gray-100 text-left bg-gray-50/50">
                     <th className="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Name</th>
                     <th className="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Phone</th>
                     <th className="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Village</th>
@@ -136,21 +226,26 @@ export default function LeadsPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {leads.map((lead) => (
-                    <tr key={lead.id} className="hover:bg-gray-50 transition">
+                    <tr key={lead.id} className="hover:bg-gray-50/70 transition">
                       <td className="px-4 py-3.5 font-medium text-gray-900">{lead.name ?? "—"}</td>
                       <td className="px-4 py-3.5 text-gray-600">{lead.phone ?? "—"}</td>
                       <td className="px-4 py-3.5 text-gray-500">{lead.village ?? "—"}</td>
                       <td className="px-4 py-3.5 text-gray-500">{lead.district ?? "—"}</td>
                       <td className="px-4 py-3.5 text-gray-500">{lead.source ?? "—"}</td>
+
+                      {/* Status dropdown */}
                       <td className="px-4 py-3.5">
-                        {lead.status ? (
-                          <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor(lead.status)}`}>
-                            {lead.status}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400">—</span>
-                        )}
+                        <select
+                          value={lead.status ?? "New"}
+                          onChange={(e) => handleStatusChange(lead, e.target.value)}
+                          className={`text-xs font-medium px-2.5 py-1 rounded-full border cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-400 transition ${statusColor(lead.status)}`}
+                        >
+                          {STATUS_OPTIONS.map((s) => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
                       </td>
+
                       <td className="px-4 py-3.5 text-gray-500">{lead.assigned_to ?? "—"}</td>
                       <td className="px-4 py-3.5 text-gray-400">
                         {lead.follow_up_date

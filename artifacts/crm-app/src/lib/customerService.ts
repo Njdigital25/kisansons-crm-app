@@ -56,18 +56,29 @@ export async function createCustomer(
 }
 
 /**
- * Updates a lead's status to "Qualified" in Supabase.
+ * Updates a lead's status in Supabase.
+ * Uses .select() to detect silent RLS blocks (Supabase returns no error
+ * when UPDATE is blocked by RLS, but returns 0 rows).
  */
 export async function updateLeadStatus(
   leadId: string,
   status: string
 ): Promise<{ error?: string }> {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("leads")
     .update({ status })
-    .eq("id", leadId);
+    .eq("id", leadId)
+    .select("id");
 
   if (error) return { error: error.message };
+
+  if (!data || data.length === 0) {
+    return {
+      error:
+        "Status not saved — your database blocked the update. In Supabase go to Authentication → Policies → leads table and add an UPDATE policy for the authenticated role.",
+    };
+  }
+
   return {};
 }
 

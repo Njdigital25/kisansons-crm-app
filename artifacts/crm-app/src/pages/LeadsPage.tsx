@@ -100,8 +100,7 @@ export default function LeadsPage({ onSuccess }: Props) {
       setError(statusErr);
       return;
     }
-    // Sync with server after successful save
-    await fetchLeads();
+    // Optimistic state is already correct — no need to re-fetch
   };
 
   // Edit lead

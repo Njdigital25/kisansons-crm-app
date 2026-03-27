@@ -31,3 +31,48 @@ export type Customer = {
   village?: string;
   created_at?: string;
 };
+
+export type Product = {
+  id: string;
+  name: string;
+  selling_price: number;
+  cost_price: number;
+  stock: number;
+  created_at?: string;
+};
+
+export type PurchaseInvoice = {
+  id: string;
+  supplier_name?: string;
+  invoice_number?: string;
+  date?: string;
+  created_at?: string;
+  purchase_items?: PurchaseItem[];
+};
+
+export type PurchaseItem = {
+  id: string;
+  invoice_id: string;
+  product_id: string;
+  quantity: number;
+  cost_price: number;
+  product?: Product;
+};
+
+export type Order = {
+  id: string;
+  customer_name?: string;
+  status: string;
+  notes?: string;
+  created_at?: string;
+  order_items?: OrderItem[];
+};
+
+export type OrderItem = {
+  id: string;
+  order_id: string;
+  product_id: string;
+  quantity: number;
+  selling_price: number;
+  product?: Product;
+};

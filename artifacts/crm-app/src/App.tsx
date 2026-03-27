@@ -5,9 +5,11 @@ import LoginPage from "@/pages/LoginPage";
 import DashboardPage from "@/pages/DashboardPage";
 import LeadsPage from "@/pages/LeadsPage";
 import CustomersPage from "@/pages/CustomersPage";
+import ProductsPage from "@/pages/ProductsPage";
+import PurchasePage from "@/pages/PurchasePage";
+import OrdersPage from "@/pages/OrdersPage";
 import Layout from "@/components/Layout";
-
-type Page = "dashboard" | "leads" | "customers";
+import type { Page } from "@/components/Layout";
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -39,9 +41,12 @@ export default function App() {
 
   const renderPage = () => {
     switch (currentPage) {
-      case "dashboard": return <DashboardPage />;
-      case "leads": return <LeadsPage />;
-      case "customers": return <CustomersPage />;
+      case "dashboard":  return <DashboardPage />;
+      case "leads":      return <LeadsPage />;
+      case "customers":  return <CustomersPage />;
+      case "products":   return <ProductsPage />;
+      case "purchases":  return <PurchasePage />;
+      case "orders":     return <OrdersPage />;
     }
   };
 

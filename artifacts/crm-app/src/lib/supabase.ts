@@ -12,10 +12,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export type Lead = {
-  id: number;
-  name: string;
-  email: string;
-  company?: string;
+  id: string;
+  name?: string;
+  phone?: string;
+  village?: string;
+  district?: string;
+  source?: string;
   status?: string;
+  assigned_to?: string;
+  follow_up_date?: string;
   created_at?: string;
 };

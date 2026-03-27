@@ -6,24 +6,37 @@ type Props = {
   onCancel: () => void;
 };
 
-const STATUS_OPTIONS = ["new", "contacted", "qualified", "lost"];
+const STATUS_OPTIONS = ["New", "Contacted", "Qualified", "Lost"];
+const SOURCE_OPTIONS = ["Walk-in", "Referral", "Online", "Phone", "Other"];
 
 export default function AddLeadForm({ onSuccess, onCancel }: Props) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [company, setCompany] = useState("");
-  const [status, setStatus] = useState("new");
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    village: "",
+    district: "",
+    source: "",
+    status: "New",
+    assigned_to: "",
+    follow_up_date: "",
+  });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const set = (field: string, value: string) =>
+    setForm((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.from("leads").insert([
-      { name, email, company: company || null, status },
-    ]);
+    const payload: Record<string, string | null> = {};
+    for (const [key, value] of Object.entries(form)) {
+      payload[key] = value.trim() !== "" ? value.trim() : null;
+    }
+
+    const { error } = await supabase.from("leads").insert([payload]);
 
     if (error) {
       setError(error.message);
@@ -34,67 +47,105 @@ export default function AddLeadForm({ onSuccess, onCancel }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="lead-name">
-          Name <span className="text-red-500">*</span>
-        </label>
-        <input
-          id="lead-name"
-          type="text"
-          required
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Jane Smith"
-          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-        />
+    <form onSubmit={handleSubmit} className="space-y-3">
+      {/* Name */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Name</label>
+          <input
+            type="text"
+            value={form.name}
+            onChange={(e) => set("name", e.target.value)}
+            placeholder="Full name"
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Phone</label>
+          <input
+            type="tel"
+            value={form.phone}
+            onChange={(e) => set("phone", e.target.value)}
+            placeholder="Phone number"
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+          />
+        </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="lead-email">
-          Email <span className="text-red-500">*</span>
-        </label>
-        <input
-          id="lead-email"
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="jane@company.com"
-          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-        />
+      {/* Village & District */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Village</label>
+          <input
+            type="text"
+            value={form.village}
+            onChange={(e) => set("village", e.target.value)}
+            placeholder="Village"
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">District</label>
+          <input
+            type="text"
+            value={form.district}
+            onChange={(e) => set("district", e.target.value)}
+            placeholder="District"
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+          />
+        </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="lead-company">
-          Company
-        </label>
-        <input
-          id="lead-company"
-          type="text"
-          value={company}
-          onChange={(e) => setCompany(e.target.value)}
-          placeholder="Acme Corp"
-          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-        />
+      {/* Source & Status */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Source</label>
+          <select
+            value={form.source}
+            onChange={(e) => set("source", e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+          >
+            <option value="">Select source</option>
+            {SOURCE_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+          <select
+            value={form.status}
+            onChange={(e) => set("status", e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+          >
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1" htmlFor="lead-status">
-          Status
-        </label>
-        <select
-          id="lead-status"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-          className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-        >
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s} className="capitalize">
-              {s.charAt(0).toUpperCase() + s.slice(1)}
-            </option>
-          ))}
-        </select>
+      {/* Assigned To & Follow-up Date */}
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Assigned To</label>
+          <input
+            type="text"
+            value={form.assigned_to}
+            onChange={(e) => set("assigned_to", e.target.value)}
+            placeholder="Assignee name"
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Follow-up Date</label>
+          <input
+            type="date"
+            value={form.follow_up_date}
+            onChange={(e) => set("follow_up_date", e.target.value)}
+            className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+          />
+        </div>
       </div>
 
       {error && (

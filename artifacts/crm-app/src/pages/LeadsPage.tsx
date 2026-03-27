@@ -60,7 +60,7 @@ export default function LeadsPage() {
         </button>
       </header>
 
-      <main className="max-w-5xl mx-auto px-6 py-8">
+      <main className="max-w-6xl mx-auto px-6 py-8">
         {/* Page title + Add button */}
         <div className="flex items-center justify-between mb-6">
           <div>
@@ -81,7 +81,7 @@ export default function LeadsPage() {
         {/* Add Lead Modal */}
         {showForm && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-            <div className="w-full max-w-md bg-white rounded-2xl shadow-xl p-6">
+            <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl p-6">
               <div className="flex items-center justify-between mb-5">
                 <h3 className="text-lg font-semibold text-gray-900">New Lead</h3>
                 <button
@@ -120,40 +120,48 @@ export default function LeadsPage() {
           </div>
         ) : (
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 text-left">
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Name</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Company</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
-                  <th className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Added</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {leads.map((lead) => (
-                  <tr key={lead.id} className="hover:bg-gray-50 transition">
-                    <td className="px-5 py-4 font-medium text-gray-900">{lead.name}</td>
-                    <td className="px-5 py-4 text-gray-600">{lead.email}</td>
-                    <td className="px-5 py-4 text-gray-500">{lead.company ?? "—"}</td>
-                    <td className="px-5 py-4">
-                      {lead.status ? (
-                        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${statusColor(lead.status)}`}>
-                          {lead.status}
-                        </span>
-                      ) : (
-                        <span className="text-gray-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4 text-gray-400">
-                      {lead.created_at
-                        ? new Date(lead.created_at).toLocaleDateString()
-                        : "—"}
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 text-left">
+                    <th className="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Name</th>
+                    <th className="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Phone</th>
+                    <th className="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Village</th>
+                    <th className="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">District</th>
+                    <th className="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Source</th>
+                    <th className="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Status</th>
+                    <th className="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Assigned To</th>
+                    <th className="px-4 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">Follow-up</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {leads.map((lead) => (
+                    <tr key={lead.id} className="hover:bg-gray-50 transition">
+                      <td className="px-4 py-3.5 font-medium text-gray-900">{lead.name ?? "—"}</td>
+                      <td className="px-4 py-3.5 text-gray-600">{lead.phone ?? "—"}</td>
+                      <td className="px-4 py-3.5 text-gray-500">{lead.village ?? "—"}</td>
+                      <td className="px-4 py-3.5 text-gray-500">{lead.district ?? "—"}</td>
+                      <td className="px-4 py-3.5 text-gray-500">{lead.source ?? "—"}</td>
+                      <td className="px-4 py-3.5">
+                        {lead.status ? (
+                          <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${statusColor(lead.status)}`}>
+                            {lead.status}
+                          </span>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3.5 text-gray-500">{lead.assigned_to ?? "—"}</td>
+                      <td className="px-4 py-3.5 text-gray-400">
+                        {lead.follow_up_date
+                          ? new Date(lead.follow_up_date).toLocaleDateString()
+                          : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </main>

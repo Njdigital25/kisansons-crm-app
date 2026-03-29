@@ -29,12 +29,15 @@ export type Customer = {
   name?: string;
   phone?: string;
   village?: string;
+  address?: string;
   created_at?: string;
 };
 
 export type Product = {
   id: string;
   name: string;
+  code?: string;
+  size?: string;
   selling_price: number;
   cost_price: number;
   stock: number;
@@ -62,6 +65,8 @@ export type PurchaseItem = {
 export type Order = {
   id: string;
   customer_name?: string;
+  phone?: string;
+  address?: string;
   status: string;
   notes?: string;
   created_at?: string;

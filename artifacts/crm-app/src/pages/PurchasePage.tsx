@@ -14,6 +14,23 @@ const emptyItem = (): ItemRow => ({ product_id: "", quantity: "", cost_price: ""
 const inputCls = "w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition bg-white";
 const labelCls = "block text-xs font-medium text-gray-700 mb-1";
 
+async function generateNextPONumber(): Promise<string> {
+  const { data } = await supabase
+    .from("purchase_invoices")
+    .select("invoice_number")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!data?.invoice_number) return "PO-001";
+
+  const match = data.invoice_number.match(/(\d+)$/);
+  if (!match) return "PO-001";
+
+  const next = parseInt(match[1]) + 1;
+  return `PO-${String(next).padStart(3, "0")}`;
+}
+
 export default function PurchasePage() {
   const [invoices, setInvoices] = useState<PurchaseInvoice[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -32,7 +49,7 @@ export default function PurchasePage() {
   const fetchData = async () => {
     setLoading(true);
     const [{ data: inv }, { data: prod }] = await Promise.all([
-      supabase.from("purchase_invoices").select("*, purchase_items(*, product:products(name))").order("created_at", { ascending: false }),
+      supabase.from("purchase_invoices").select("*, purchase_items(*, product:products(name, code))").order("created_at", { ascending: false }),
       supabase.from("products").select("*").order("name"),
     ]);
     setInvoices(inv ?? []);
@@ -47,13 +64,23 @@ export default function PurchasePage() {
     setTimeout(() => setSuccess(null), 4000);
   };
 
+  const openNewPurchase = async () => {
+    const nextPO = await generateNextPONumber();
+    setInvoiceNumber(nextPO);
+    setSupplierName("");
+    setInvoiceDate(new Date().toISOString().split("T")[0]);
+    setItems([emptyItem()]);
+    setFormError(null);
+    setShowForm(true);
+  };
+
   const updateItem = (idx: number, field: keyof ItemRow, value: string) => {
     setItems((prev) => {
       const next = [...prev];
       next[idx] = { ...next[idx], [field]: value };
       if (field === "product_id" && value) {
         const product = products.find((p) => p.id === value);
-        if (product && !next[idx].cost_price) {
+        if (product) {
           next[idx].cost_price = String(product.cost_price);
         }
       }
@@ -63,12 +90,6 @@ export default function PurchasePage() {
 
   const removeItem = (idx: number) => {
     setItems((prev) => prev.filter((_, i) => i !== idx));
-  };
-
-  const resetForm = () => {
-    setSupplierName(""); setInvoiceNumber("");
-    setInvoiceDate(new Date().toISOString().split("T")[0]);
-    setItems([emptyItem()]); setFormError(null);
   };
 
   const handleSave = async () => {
@@ -93,14 +114,15 @@ export default function PurchasePage() {
     if (error) { setFormError(error); setSaveLoading(false); return; }
 
     setShowForm(false);
-    resetForm();
     await fetchData();
     showSuccess("Stock updated successfully!");
     setSaveLoading(false);
   };
 
-  const totalItems = (inv: PurchaseInvoice) =>
-    (inv.purchase_items ?? []).reduce((s, i) => s + (i.quantity ?? 0), 0);
+  const totalCost = (inv: PurchaseInvoice) =>
+    (inv.purchase_items ?? []).reduce((s, i) => s + i.quantity * i.cost_price, 0);
+
+  const productLabel = (p: Product) => `${p.code ? `[${p.code}] ` : ""}${p.name}${p.size ? ` – ${p.size}` : ""}`;
 
   return (
     <div className="px-8 py-8 max-w-6xl mx-auto">
@@ -116,7 +138,7 @@ export default function PurchasePage() {
           <h1 className="text-2xl font-bold text-gray-900">Purchases</h1>
           <p className="text-sm text-gray-500 mt-0.5">{invoices.length} purchase invoices</p>
         </div>
-        <button onClick={() => { setShowForm(true); resetForm(); }}
+        <button onClick={openNewPurchase}
           className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
           New Purchase
@@ -138,7 +160,7 @@ export default function PurchasePage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50 text-left">
-                {["Invoice #", "Supplier", "Date", "Items", "Products"].map((h) => (
+                {["Invoice #", "Supplier", "Date", "Products", "Total Cost"].map((h) => (
                   <th key={h} className="px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -146,16 +168,21 @@ export default function PurchasePage() {
             <tbody className="divide-y divide-gray-50">
               {invoices.map((inv) => (
                 <tr key={inv.id} className="hover:bg-gray-50/70 transition">
-                  <td className="px-5 py-3.5 font-medium text-gray-900">{inv.invoice_number ?? "—"}</td>
+                  <td className="px-5 py-3.5 font-bold text-indigo-700 font-mono">{inv.invoice_number ?? "—"}</td>
                   <td className="px-5 py-3.5 text-gray-700">{inv.supplier_name ?? "—"}</td>
                   <td className="px-5 py-3.5 text-gray-500 text-xs">{inv.date ? new Date(inv.date).toLocaleDateString() : "—"}</td>
-                  <td className="px-5 py-3.5 text-gray-500">{totalItems(inv)} units</td>
                   <td className="px-5 py-3.5 text-gray-500 text-xs">
                     {(inv.purchase_items ?? []).map((i, idx) => {
                       const prod = Array.isArray(i.product) ? i.product[0] : i.product;
-                      return <span key={idx} className="mr-2">{prod?.name ?? "?"} ×{i.quantity}</span>;
+                      return (
+                        <span key={idx} className="inline-flex items-center gap-1 mr-2">
+                          {prod?.code && <span className="font-mono text-indigo-600 font-bold">[{prod.code}]</span>}
+                          {prod?.name ?? "?"} ×{i.quantity}
+                        </span>
+                      );
                     })}
                   </td>
+                  <td className="px-5 py-3.5 text-gray-700 font-medium">₹ {totalCost(inv).toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
@@ -164,9 +191,8 @@ export default function PurchasePage() {
       )}
 
       {showForm && (
-        <Modal title="New Purchase Invoice" onClose={() => setShowForm(false)} maxWidth="max-w-2xl">
+        <Modal title={`New Purchase Invoice — ${invoiceNumber}`} onClose={() => setShowForm(false)} maxWidth="max-w-2xl">
           <div className="space-y-5">
-            {/* Header fields */}
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className={labelCls}>Supplier Name</label>
@@ -174,7 +200,7 @@ export default function PurchasePage() {
               </div>
               <div>
                 <label className={labelCls}>Invoice Number</label>
-                <input type="text" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} placeholder="INV-001" className={inputCls} />
+                <input type="text" value={invoiceNumber} onChange={(e) => setInvoiceNumber(e.target.value)} className={`${inputCls} font-mono font-bold text-indigo-700`} />
               </div>
               <div>
                 <label className={labelCls}>Date</label>
@@ -182,7 +208,6 @@ export default function PurchasePage() {
               </div>
             </div>
 
-            {/* Items */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-semibold text-gray-700">Products</p>
@@ -195,9 +220,9 @@ export default function PurchasePage() {
 
               <div className="space-y-2">
                 <div className="grid grid-cols-12 gap-2 text-xs font-semibold text-gray-400 uppercase tracking-wide px-1">
-                  <div className="col-span-5">Product</div>
+                  <div className="col-span-5">Product (Code)</div>
                   <div className="col-span-3">Quantity</div>
-                  <div className="col-span-3">Cost Price</div>
+                  <div className="col-span-3">Cost Price (₹)</div>
                   <div className="col-span-1"></div>
                 </div>
 
@@ -207,7 +232,7 @@ export default function PurchasePage() {
                       <select value={item.product_id} onChange={(e) => updateItem(idx, "product_id", e.target.value)} className={inputCls}>
                         <option value="">Select product…</option>
                         {products.map((p) => (
-                          <option key={p.id} value={p.id}>{p.name}</option>
+                          <option key={p.id} value={p.id}>{productLabel(p)}</option>
                         ))}
                       </select>
                     </div>

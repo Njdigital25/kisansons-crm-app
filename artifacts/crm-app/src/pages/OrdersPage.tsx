@@ -70,7 +70,7 @@ function CustomerSearchInput({
               className="w-full text-left px-4 py-2.5 hover:bg-indigo-50 transition text-sm"
             >
               <p className="font-medium text-gray-900">{c.name}</p>
-              <p className="text-xs text-gray-400">{c.phone ?? "No phone"} {c.village ? `· ${c.village}` : ""}</p>
+              <p className="text-xs text-gray-400">{c.phone ?? "No phone"} {c.address ? `· ${c.address}` : ""}</p>
             </button>
           ))}
         </div>
@@ -135,7 +135,7 @@ export default function OrdersPage() {
   const handleSelectCustomer = (c: Customer) => {
     setCustomerName(c.name ?? "");
     setPhone(c.phone ?? "");
-    setAddress(c.village ?? c.address ?? "");
+    setAddress(c.address ?? "");
   };
 
   const handleSave = async () => {

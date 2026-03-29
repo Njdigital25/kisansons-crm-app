@@ -28,7 +28,6 @@ export type Customer = {
   id: string;
   name?: string;
   phone?: string;
-  village?: string;
   address?: string;
   created_at?: string;
 };

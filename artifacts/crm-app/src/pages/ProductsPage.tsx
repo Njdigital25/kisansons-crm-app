@@ -12,7 +12,7 @@ type ProductForm = {
 
 const emptyForm: ProductForm = { name: "", code: "", size: "", selling_price: "", cost_price: "" };
 
-const SIZE_PRESETS = ["250 ML", "500 ML", "1 Liter", "2 Liter", "250 Gm", "500 Gm", "1 KG", "5 KG", "10 KG", "1 Piece", "Pack of 6", "Pack of 12"];
+const SIZE_OPTIONS = ["250 ML", "500 ML", "1 Liter", "2 Liter", "250 Gm", "500 Gm", "1 KG", "5 KG", "10 KG", "1 Piece", "Pack of 6", "Pack of 12"];
 
 const inputCls = "w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition";
 const labelCls = "block text-sm font-medium text-gray-700 mb-1";
@@ -56,17 +56,12 @@ function ProductFormFields({ form, onChange }: {
       </div>
       <div>
         <label className={labelCls}>Size / Variant</label>
-        <div className="flex gap-2">
-          <input type="text" value={form.size} onChange={(e) => onChange("size", e.target.value)} placeholder="e.g. 1 KG, 500 ML, 1 Liter" className={inputCls} />
-        </div>
-        <div className="flex flex-wrap gap-1.5 mt-2">
-          {SIZE_PRESETS.map((s) => (
-            <button key={s} type="button" onClick={() => onChange("size", s)}
-              className={`text-xs px-2.5 py-1 rounded-full border transition ${form.size === s ? "bg-indigo-600 text-white border-indigo-600" : "border-gray-200 text-gray-600 hover:border-indigo-300 hover:text-indigo-600"}`}>
-              {s}
-            </button>
+        <select value={form.size} onChange={(e) => onChange("size", e.target.value)} className={inputCls}>
+          <option value="">— Select size —</option>
+          {SIZE_OPTIONS.map((s) => (
+            <option key={s} value={s}>{s}</option>
           ))}
-        </div>
+        </select>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>

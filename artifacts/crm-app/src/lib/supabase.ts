@@ -5,7 +5,7 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error(
-    "Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY environment variables."
+    "Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY environment variables.",
   );
 }
 
@@ -28,13 +28,15 @@ export type Customer = {
   id: string;
   name?: string;
   phone?: string;
-  village?: string;
+  address?: string;
   created_at?: string;
 };
 
 export type Product = {
   id: string;
   name: string;
+  code?: string;
+  size?: string;
   selling_price: number;
   cost_price: number;
   stock: number;
@@ -61,11 +63,16 @@ export type PurchaseItem = {
 
 export type Order = {
   id: string;
-  customer_name?: string;
-  status: string;
+  customer_name: string;
+  phone: string;
+  address: string;
+  order_status: string;
   notes?: string;
-  created_at?: string;
-  order_items?: OrderItem[];
+  created_at: string;
+  order_items: OrderItem[];
+  quantity: number;
+  price: number;
+  total: number;
 };
 
 export type OrderItem = {
